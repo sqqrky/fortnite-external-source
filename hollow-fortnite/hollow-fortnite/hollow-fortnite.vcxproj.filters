@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="workspace\game\render\render.cpp" />
+    <ClCompile Include="workspace\game\features\world\world.cpp" />
+    <ClCompile Include="workspace\game\features\visuals\visuals.cpp" />
+    <ClCompile Include="workspace\game\features\radar\radar.cpp" />
+    <ClCompile Include="workspace\game\features\aimbot\aimbot.cpp" />
+    <ClCompile Include="workspace\game\entity\entity.cpp" />
+    <ClCompile Include="dependencies\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="dependencies\imgui\imgui_tables.cpp" />
+    <ClCompile Include="dependencies\imgui\imgui_draw.cpp" />
+    <ClCompile Include="dependencies\imgui\imgui.cpp" />
+    <ClCompile Include="dependencies\imgui\backend\imgui_impl_win32.cpp" />
+    <ClCompile Include="dependencies\imgui\backend\imgui_impl_dx11.cpp" />
+    <ClCompile Include="dependencies\framework\framework.cpp" />
+    <ClCompile Include="workspace\unreal\engine\engine.cpp" />
+    <ClCompile Include="workspace\unreal\exception\exception.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="workspace\unreal\engine\engine.hpp" />
+    <ClInclude Include="workspace\unreal\core\sdk.hpp" />
+    <ClInclude Include="workspace\unreal\core\math\math.hpp" />
+    <ClInclude Include="workspace\game\render\render.hpp" />
+    <ClInclude Include="workspace\game\features\world\world.hpp" />
+    <ClInclude Include="workspace\game\features\visuals\visuals.hpp" />
+    <ClInclude Include="workspace\game\features\radar\radar.hpp" />
+    <ClInclude Include="workspace\game\features\aimbot\aimbot.hpp" />
+    <ClInclude Include="workspace\game\entity\entity.hpp" />
+    <ClInclude Include="workspace\game\entity\enumerations\players.hpp" />
+    <ClInclude Include="workspace\game\entity\enumerations\enumerations.hpp" />
+    <ClInclude Include="workspace\driver\driver.hpp" />
+    <ClInclude Include="impl\includes.hpp" />
+    <ClInclude Include="impl\wdk\wdk.hpp" />
+    <ClInclude Include="impl\ia32\ia32.hpp" />
+    <ClInclude Include="dependencies\g_vars.hpp" />
+    <ClInclude Include="dependencies\skcrypt\skcrypter.hpp" />
+    <ClInclude Include="dependencies\imgui\imstb_truetype.h" />
+    <ClInclude Include="dependencies\imgui\imstb_textedit.h" />
+    <ClInclude Include="dependencies\imgui\imstb_rectpack.h" />
+    <ClInclude Include="dependencies\imgui\imgui_internal.h" />
+    <ClInclude Include="dependencies\imgui\imgui.h" />
+    <ClInclude Include="dependencies\imgui\backend\imgui_impl_win32.h" />
+    <ClInclude Include="dependencies\imgui\backend\imgui_impl_dx11.h" />
+    <ClInclude Include="dependencies\framework\framework.hpp" />
+    <ClInclude Include="workspace\unreal\exception\exception.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <MASM Include="impl\assembly\assembly.asm" />
+  </ItemGroup>
+</Project>
