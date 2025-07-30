@@ -1,12 +1,13 @@
 #include <workspace/game/entity/entity.hpp>
 #include <workspace/unreal/core/sdk.hpp>
 #include <workspace/game/entity/enumerations/players.hpp>
-//#include <workspace/game/features/aimbot/aimbot.hpp>
 
 std::unique_ptr<players::player> cache = std::make_unique<players::player>();
 std::vector<players::player> entities_cache;
 
 void m_class::m_tick_query::get_world( ) {
+    std::scoped_lock lock( world_mutex );
+    
     cache->g_world = sdk::u_world::declare_member_uworld( );
     if ( !cache->g_world )
         return;
@@ -30,82 +31,68 @@ void m_class::m_tick_query::get_world( ) {
     cache->acknowledged_pawn = cache->player_controller->acknowledged_pawn( );
 }
 
+std::unordered_map< std::uintptr_t, std::string > m_class::m_tick_query::username_cache;
+std::mutex m_class::m_tick_query::username_cache_mutex;
+
+// credits to whoever decided code should look like this, your a fucking goat.
+
 void m_class::m_tick_query::get_actors( ) {
     if ( !cache->game_state )
         return;
 
-    auto player_array = cache->game_state->player_array( ).get_iteration( );
+    const auto player_array = cache->game_state->player_array( ).get_iteration( );
     if ( player_array.empty( ) )
         return;
 
-    entities_cache.clear( );
-    entities_cache.reserve( player_array.size( ) );
+    std::vector< players::player > local_entities;
+    local_entities.reserve( player_array.size( ) );
 
-    std::vector< sdk::a_fort_player_state_athena* > filtered_player_states;
-    std::vector< sdk::a_fort_player_pawn* > filtered_pawns;
-
-    filtered_player_states.reserve( player_array.size( ) );
-    filtered_pawns.reserve( player_array.size( ) );
-
-    for ( auto ptr : player_array ) {
-        if ( !ptr )
-            continue;
-
-        auto player_state = reinterpret_cast< sdk::a_fort_player_state_athena* >( ptr );
+    for ( auto raw : player_array ) {
+        auto* player_state = reinterpret_cast< sdk::a_fort_player_state_athena* >( raw );
         if ( !player_state )
             continue;
 
-        auto pawn = player_state->pawn_private( );
-        if ( !pawn )
+        auto* pawn = player_state->pawn_private( );
+        if ( !pawn || ( cache->acknowledged_pawn && pawn == cache->acknowledged_pawn ) )
             continue;
 
-        if ( cache->acknowledged_pawn && pawn == cache->acknowledged_pawn )
-            continue;
+        auto* mesh = pawn->mesh( );
+        bool visible = mesh && cache->g_world
+            ? mesh->is_visible( reinterpret_cast< std::uintptr_t >( cache->g_world ) )
+            : false;
 
-        filtered_player_states.push_back( player_state );
-        filtered_pawns.push_back( pawn );
-    }
+        std::uintptr_t state_key = reinterpret_cast< std::uintptr_t >( player_state );
+        std::string user_name;
 
-    std::vector< sdk::u_skeletal_mesh_component* > meshes;
-    meshes.reserve( filtered_pawns.size( ) );
-
-    for ( auto pawn : filtered_pawns ) {
-        meshes.push_back( pawn ? pawn->mesh( ) : nullptr );
-    }
-
-    std::vector< bool > visibility_flags;
-    visibility_flags.reserve( meshes.size( ) );
-
-    for ( auto mesh : meshes ) {
-        visibility_flags.push_back( mesh && cache->g_world ? mesh->is_visible( reinterpret_cast< std::uintptr_t >( cache->g_world ) ) : false );
-    }
-
-    std::vector< bool > is_dying_flags;
-    std::vector< bool > is_dbno_flags;
-    is_dying_flags.reserve( filtered_player_states.size( ) );
-    is_dbno_flags.reserve( filtered_player_states.size( ) );
-
-    for ( auto player_state : filtered_player_states ) {
-        is_dying_flags.push_back( player_state ? player_state->b_is_dying( ) : false );
-        is_dbno_flags.push_back( player_state ? player_state->b_is_dbno( ) : false );
-    }
-
-    for ( std::size_t i = 0; i < filtered_player_states.size( ); ++i ) {
-        auto player_state = filtered_player_states[ i ];
-        if ( !player_state )
-            continue;
+        {
+            std::scoped_lock lock( username_cache_mutex );
+            auto it = username_cache.find( state_key );
+            if ( it != username_cache.end( ) ) {
+                user_name = it->second;
+            } else {
+                user_name = cache->game_state->get_user_name( player_state );
+                if ( !user_name.empty( ) ) {
+                    username_cache[ state_key ] = user_name; 
+                }
+            }
+        }
 
         players::player entity{ };
-        entity.player_state = reinterpret_cast< std::uintptr_t >( player_state );
-        entity.pawn_private = reinterpret_cast< std::uintptr_t >( filtered_pawns[ i ] );
-        entity.mesh = meshes[ i ];
-        entity.is_visible = visibility_flags[ i ];
-        entity.is_dying = is_dying_flags[ i ];
-        entity.is_dbno = is_dbno_flags[ i ];
-        entity.user_name = cache->game_state->get_user_name( player_state );
+        entity.player_state = state_key;
+        entity.pawn_private = reinterpret_cast< std::uintptr_t >( pawn );
+        entity.mesh = mesh;
+        entity.is_visible = visible;
+        entity.is_dying = player_state->b_is_dying( );
+        entity.is_dbno = player_state->b_is_dbno( );
+        entity.user_name = std::move( user_name );
         entity.read_username = !entity.user_name.empty( );
 
-        entities_cache.push_back( std::move( entity ) );
+        local_entities.emplace_back( std::move( entity ) );
+    }
+
+    {
+        std::scoped_lock lock( entity_mutex );
+        entities_cache = std::move( local_entities );
     }
 }
 
